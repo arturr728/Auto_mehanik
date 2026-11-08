@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0d1014">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Автомастерская</title>
+<style>
+:root{
+  --bg:#0d1014;
+  --panel:#161c24;
+  --panel2:#1e2733;
+  --line:#25303e;
+  --acc:#ff8a1f;
+  --ok:#3ddc84;
+  --bad:#ff4d5e;
+  --txt:#e8eef6;
+  --dim:#8b97a8;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  background:radial-gradient(120% 80% at 50% 0%,#1b2430 0%,#0d1014 62%);
+  color:var(--txt);
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+}
+#app{
+  position:relative;height:100vh;height:100dvh;max-width:560px;margin:0 auto;
+  display:flex;flex-direction:column;
+  padding:8px 12px 0;
+  padding:calc(8px + env(safe-area-inset-top)) 12px 0;
+}
+.hidden{display:none !important}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:center;gap:7px;flex:none;padding-bottom:8px}
+.chip{
+  display:flex;align-items:center;gap:5px;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:6px 9px;
+  font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;
+  transition:transform .15s;
+}
+.chip.bump{transform:scale(1.12)}
+.chip .ico{font-size:13px;line-height:1}
+#hearts{margin-left:auto;letter-spacing:.5px;font-size:13px;padding:6px 7px}
+#hearts .off{opacity:.22}
+#soundBtn{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  color:var(--txt);font-size:14px;padding:6px 8px;line-height:1;
+}
+
+/* ---------- tabs ---------- */
+.tabwrap{position:relative;flex:1;min-height:0}
+.tab{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px}
+.scroll{
+  flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:14px;
+}
+nav.tabs{
+  flex:none;display:flex;gap:6px;
+  padding:8px 0;
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom));
+}
+nav.tabs button{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:transparent;border:1px solid transparent;border-radius:14px;
+  color:var(--dim);font-family:inherit;font-size:10.5px;font-weight:700;
+  padding:7px 4px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+}
+nav.tabs button .e{font-size:19px;line-height:1;filter:grayscale(.6);transition:filter .15s}
+nav.tabs button.on{background:var(--panel2);border-color:var(--line);color:var(--txt)}
+nav.tabs button.on .e{filter:none}
+
+/* ---------- timer ---------- */
+.timerwrap{
+  height:8px;border-radius:99px;background:#141a22;overflow:hidden;
+  border:1px solid #1e2733;flex:none;
+}
+#timerFill{
+  height:100%;width:100%;border-radius:99px;
+  background:linear-gradient(90deg,#39d07a,#8ee06a);
+}
+#timerFill.warn{background:linear-gradient(90deg,#ffb02e,#ffd166)}
+#timerFill.danger{background:linear-gradient(90deg,#ff3b4e,#ff7a6b)}
+
+/* ---------- bay ---------- */
+.garage{
+  position:relative;flex:1;min-height:0;border-radius:18px;
+  background:linear-gradient(180deg,#151c26 0%,#121821 58%,#0e131a 100%);
+  border:1px solid #1d2632;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:10px;
+}
+.garage::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:30%;
+  background:repeating-linear-gradient(90deg,#161f2a 0 24px,#131b24 24px 48px);
+  opacity:.6;border-top:1px solid #1d2733;
+}
+.lamp{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:150px;height:60px;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,205,120,.25),transparent 70%);
+  pointer-events:none;
+}
+.door{
+  position:absolute;top:0;left:0;right:0;height:40%;
+  background:repeating-linear-gradient(180deg,#1b2531 0 9px,#161f29 9px 18px);
+  border-bottom:2px solid #2a3646;
+  transform-origin:top;transform:scaleY(.06);
+  transition:transform .45s ease;z-index:1;
+}
+.door.closed{transform:scaleY(1)}
+.baylabel{
+  position:absolute;top:8px;left:10px;z-index:4;
+  font-size:10px;font-weight:800;letter-spacing:1px;color:#4d5c6e;
+  text-transform:uppercase;
+}
+.carwrap{
+  position:relative;width:100%;max-width:340px;z-index:2;
+  animation:bob 3.2s ease-in-out infinite;
+  transition:transform .45s ease,opacity .45s ease;
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.carwrap.gone{transform:translateX(130%);opacity:0}
+.carwrap.enter{animation:driveIn .55s ease-out}
+@keyframes driveIn{from{transform:translateX(130%)}to{transform:translateX(0)}}
+.carwrap.shake{animation:shake .38s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-9px) rotate(-1.2deg)}
+  40%{transform:translateX(8px) rotate(1.2deg)}
+  60%{transform:translateX(-6px)}
+  80%{transform:translateX(4px)}
+}
+.car{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 18px rgba(0,0,0,.55))}
+.plate{
+  position:absolute;left:50%;bottom:5%;transform:translateX(-50%);
+  background:#f2f5f8;color:#1a2230;
+  font-size:10px;font-weight:800;letter-spacing:.5px;
+  padding:2px 7px;border-radius:3px;border:2px solid #c9d2dc;
+  white-space:nowrap;
+}
+.client{
+  position:relative;z-index:3;width:100%;max-width:340px;
+  display:flex;align-items:center;gap:6px;
+  font-size:11.5px;color:var(--dim);margin-bottom:2px;
+  justify-content:center;flex-wrap:wrap;
+}
+.client b{color:var(--txt);font-weight:700}
+.stage{
+  background:#2a1f10;color:var(--acc);border:1px solid #4a3416;
+  border-radius:99px;padding:1px 8px;font-size:10px;font-weight:800;
+}
+.bubble{
+  position:relative;z-index:3;margin-top:6px;max-width:100%;
+  background:var(--panel2);border:1px solid #2a3646;border-radius:14px;
+  padding:9px 14px;font-size:15px;line-height:1.3;text-align:center;font-weight:600;
+  animation:pop .25s ease-out;
+}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(6px)}to{opacity:1;transform:none}}
+.bubble .q{color:var(--acc)}
+
+/* idle / result panel */
+.center-panel{
+  position:relative;z-index:3;display:flex;flex-direction:column;
+  align-items:center;gap:10px;text-align:center;padding:8px 6px;
+}
+.center-panel .big{font-size:44px;line-height:1}
+.center-panel h3{margin:0;font-size:17px}
+.center-panel p{margin:0;color:var(--dim);font-size:12.5px;line-height:1.4;max-width:270px}
+
+/* floating feedback */
+.float{
+  position:absolute;left:50%;top:30%;font-size:24px;font-weight:900;
+  pointer-events:none;z-index:9;transform:translate(-50%,0);
+  animation:floatUp .95s ease-out forwards;
+  text-shadow:0 4px 14px rgba(0,0,0,.7);
+}
+@keyframes floatUp{
+  0%{opacity:0;transform:translate(-50%,10px) scale(.8)}
+  25%{opacity:1;transform:translate(-50%,-6px) scale(1.1)}
+  100%{opacity:0;transform:translate(-50%,-70px) scale(1)}
+}
+.spark{
+  position:absolute;width:7px;height:7px;border-radius:50%;
+  pointer-events:none;z-index:8;animation:sparkOut .55s ease-out forwards;
+}
+@keyframes sparkOut{
+  0%{opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)}
+}
+
+/* ---------- tools ---------- */
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:none}
+.tool{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:9px 4px;
+  background:linear-gradient(180deg,#1d2733,#161e28);
+  border:1px solid #2a3646;border-radius:14px;
+  color:var(--txt);font-family:inherit;font-size:11px;font-weight:600;line-height:1.15;
+  cursor:pointer;transition:transform .08s,background .15s,border-color .15s,box-shadow .15s;
+}
+.tool .e{font-size:22px;line-height:1}
+.tool:active{transform:scale(.95)}
+.tool.right{border-color:var(--ok);background:linear-gradient(180deg,#1b3a2b,#16301f);
+  box-shadow:0 0 0 1px rgba(61,220,132,.4),0 0 18px rgba(61,220,132,.25)}
+.tool.wrong{border-color:var(--bad);background:linear-gradient(180deg,#3a1b20,#301619);animation:shake .35s}
+.tool.hint{border-color:var(--acc);box-shadow:0 0 0 1px rgba(255,138,31,.5),0 0 16px rgba(255,138,31,.3)}
+.tool:disabled{opacity:.45}
+
+/* ---------- buttons ---------- */
+.btn{
+  width:100%;padding:13px;border:0;border-radius:14px;
+  background:linear-gradient(180deg,#ff9a2e,#f07c00);color:#1a1206;
+  font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;
+  box-shadow:0 6px 20px rgba(255,138,31,.25);transition:transform .08s;
+}
+.btn:active{transform:scale(.97)}
+.btn.ghost{
+  background:transparent;color:var(--dim);border:1px solid var(--line);
+  box-shadow:none;font-size:13px;font-weight:600;padding:10px;
+}
+.btn.sm{padding:10px;font-size:13px;border-radius:11px}
+.linkbtn{
+  background:none;border:0;color:#4f5d6e;font-family:inherit;
+  font-size:11.5px;padding:10px;text-decoration:underline;cursor:pointer;
+}
+
+/* ---------- cards ---------- */
+.carCard{
+  background:linear-gradient(180deg,#1a222d,#141b24);
+  border:1px solid var(--line);border-radius:16px;
+  padding:11px;margin-bottom:9px;
+}
+.carRow{display:flex;align-items:center;gap:10px}
+.thumb{width:88px;flex:none}
+.thumb .car{filter:none}
+.cinfo{flex:1;min-width:0}
+.cname{font-size:14.5px;font-weight:800;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmeta{font-size:11px;color:var(--dim);margin-bottom:5px}
+.bar{height:6px;border-radius:99px;background:#0f151d;overflow:hidden;border:1px solid #1e2733}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#e2574c,#f0b429,#3ddc84);border-radius:99px;transition:width .3s}
+.cvalue{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin:9px 0 8px;font-size:12px;color:var(--dim);
+}
+.cvalue b{font-size:16px;color:var(--txt);font-variant-numeric:tabular-nums}
+.cactions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cactions .sell{grid-column:1 / -1}
+.cactions button{
+  padding:9px 6px;border-radius:11px;border:1px solid var(--line);
+  background:#1d2733;color:var(--txt);font-family:inherit;
+  font-size:11.5px;font-weight:700;cursor:pointer;transition:transform .08s;
+  font-variant-numeric:tabular-nums;
+}
+.cactions button:active{transform:scale(.97)}
+.cactions button:disabled{opacity:.35}
+.cactions button.sell{background:linear-gradient(180deg,#1f5c3a,#164a2e);border-color:#2c7a4d;color:#c9f5da}
+.cactions button.buy{background:linear-gradient(180deg,#ff9a2e,#f07c00);border-color:#f07c00;color:#1a1206;grid-column:1 / -1;padding:11px}
+.empty{
+  text-align:center;color:var(--dim);font-size:13px;line-height:1.5;
+  padding:40px 20px;
+}
+.empty .big{font-size:40px;display:block;margin-bottom:8px}
+.section-title{
+  font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  color:#4f5d6e;margin:4px 0 8px 2px;
+}
+.wallet-line{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:10px 13px;margin-bottom:9px;font-size:12.5px;color:var(--dim);
+}
+.wallet-line b{font-size:16px;color:var(--txt);font-variant-numeric:tabular-nums}
+
+/* ---------- overlay ---------- */
+.overlay{
+  position:absolute;inset:0;z-index:30;background:rgba(8,11,15,.87);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;padding:22px;
+  animation:fade .25s;
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.card{
+  width:100%;max-width:340px;
+  background:linear-gradient(180deg,#1a222d,#131a23);
+  border:1px solid var(--line);border-radius:20px;padding:20px;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);
+  animation:pop .3s ease-out;
+}
+.card h1{margin:0 0 6px;font-size:24px;letter-spacing:-.5px}
+.card h2{margin:0 0 10px;font-size:20px}
+.card p{margin:0 0 14px;color:var(--dim);font-size:13px;line-height:1.45}
+.card .big{font-size:42px;margin-bottom:8px}
+.stats{
+  display:flex;justify-content:space-around;margin:0 0 16px;padding:12px 0;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.stats div{display:flex;flex-direction:column;gap:2px}
+.stats b{font-size:17px;font-variant-numeric:tabular-nums}
+.stats span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px}
+.legend{
+  display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;
+  margin:12px 0 16px;text-align:left;font-size:12px;color:var(--dim);
+}
+.legend i{font-style:normal;margin-right:5px}
+.toast{
+  position:absolute;left:50%;bottom:96px;transform:translateX(-50%);
+  background:#222d3a;border:1px solid #33414f;color:var(--txt);
+  padding:9px 16px;border-radius:99px;font-size:13px;font-weight:600;
+  z-index:40;animation:toastIn .25s;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  white-space:nowrap;
+}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <div class="chip" id="walletChip"><span class="ico">💰</span><span id="wallet">0</span></div>
+    <div class="chip" id="lvlChip"><span class="ico">⭐</span><span id="level">1</span></div>
+    <div class="chip" id="hearts"></div>
+    <button id="soundBtn" aria-label="Звук">🔊</button>
+  </header>
+
+  <div class="tabwrap">
+
+    <!-- ============ SHIFT ============ -->
+    <section class="tab" id="tab-shift">
+      <div class="timerwrap"><div id="timerFill"></div></div>
+
+      <div class="garage" id="garage">
+        <div class="lamp"></div>
+        <div class="door closed" id="door"></div>
+        <div class="baylabel">Бокс №1</div>
+
+        <div id="bayContent" class="hidden" style="width:100%;display:flex;flex-direction:column;align-items:center">
+          <div class="client" id="client"></div>
+          <div class="carwrap" id="carwrap">
+            <div id="carHost"></div>
+            <div class="plate" id="plate">А 001 АА</div>
+          </div>
+          <div class="bubble" id="bubble">—</div>
+        </div>
+
+        <div id="idlePanel" class="center-panel">
+          <div class="big">🏁</div>
+          <h3 id="idleTitle">Смена не начата</h3>
+          <p id="idleText">Машины ждут во дворе. Прими первый заказ, когда будешь готов.</p>
+          <button class="btn" id="mainBtn" style="max-width:260px">Принять заказ</button>
+        </div>
+      </div>
+
+      <div class="tools hidden" id="tools"></div>
+      <div id="shiftFoot" style="display:flex;gap:7px">
+        <button class="btn ghost sm" id="endShiftBtn">Закончить смену</button>
+      </div>
+    </section>
+
+    <!-- ============ GARAGE ============ -->
+    <section class="tab hidden" id="tab-garage">
+      <div class="wallet-line">
+        <span>Свободные деньги</span><b id="wallet2">0</b>
+      </div>
+      <div class="scroll" id="myCars"></div>
+    </section>
+
+    <!-- ============ SHOP ============ -->
+    <section class="tab hidden" id="tab-shop">
+      <div class="wallet-line">
+        <span>На покупку есть</span><b id="wallet3">0</b>
+      </div>
+      <div class="scroll" id="shopList"></div>
+      <button class="btn ghost sm" id="refreshShop" style="margin-bottom:8px">🔄 Обновить ассортимент</button>
+    </section>
+
+  </div>
+
+  <nav class="tabs">
+    <button data-tab="shift" class="on"><span class="e">🔧</span><span>Смена</span></button>
+    <button data-tab="garage"><span class="e">🚗</span><span>Гараж</span></button>
+    <button data-tab="shop"><span class="e">🏪</span><span>Салон</span></button>
+  </nav>
+
+  <!-- shift end overlay -->
+  <div class="overlay hidden" id="endScreen">
+    <div class="card">
+      <div class="big" id="endEmoji">🧰</div>
+      <h2>Смена окончена</h2>
+      <div class="stats">
+        <div><b id="endEarned">0</b><span>заработал</span></div>
+        <div><b id="endFixed">0</b><span>заказов</span></div>
+        <div><b id="endLevel">1</b><span>уровень</span></div>
+      </div>
+      <p id="endText">Мастерская закрывается до завтра.</p>
+      <button class="btn" id="againBtn">Новая смена</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= utils ================= */
+function $(id){ return document.getElementById(id); }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function rnd(n){ return Math.floor(Math.random()*n); }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function fmtN(n){ return Math.round(n).toLocaleString("ru-RU"); }
+function fmt(n){ return fmtN(n)+" ₽"; }
+function round1000(n){ return Math.round(n/1000)*1000; }
+function uid(){ return "c"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ================= android bridge =================
+   В браузере этих объектов нет — все вызовы тихо игнорируются. */
+function androidBridge(){
+  try{ return (typeof window.AndroidApp !== "undefined") ? window.AndroidApp : null; }
+  catch(e){ return null; }
+}
+function notifyTab(name){
+  var a = androidBridge();
+  if(!a) return;
+  try{ a.setTab(name); }catch(e){}
+}
+function notifyReady(){
+  var a = androidBridge();
+  if(!a) return;
+  try{ a.setReady(); }catch(e){}
+}
+
+/* ================= data ================= */
+var MODELS = [
+  {n:"Москвич 412",     base:70000},
+  {n:"ВАЗ 2107",        base:90000},
+  {n:"ВАЗ 2109",        base:120000},
+  {n:"ВАЗ 2110",        base:150000},
+  {n:"ГАЗ 3110 Волга",  base:170000},
+  {n:"Нива 4x4",        base:230000},
+  {n:"Audi 80",         base:250000},
+  {n:"BMW E36",         base:300000},
+  {n:"Mercedes W124",   base:330000},
+  {n:"Ford Focus",      base:340000},
+  {n:"Honda Civic",     base:360000},
+  {n:"Subaru Impreza",  base:400000},
+  {n:"УАЗ Патриот",     base:430000},
+  {n:"Kia Rio",         base:450000},
+  {n:"Hyundai Solaris", base:470000},
+  {n:"Лада Веста",      base:520000},
+  {n:"Toyota Camry",    base:650000}
+];
+
+var TOOLS = [
+  {id:"wrench",  e:"🔧", name:"Ключ"},
+  {id:"screw",   e:"🪛", name:"Отвёртка"},
+  {id:"hammer",  e:"🔨", name:"Молоток"},
+  {id:"oil",     e:"🛢️", name:"Жидкости"},
+  {id:"scanner", e:"🔌", name:"Сканер"},
+  {id:"pump",    e:"💨", name:"Компрессор"}
+];
+
+var FAULTS = [
+  {tool:"wrench",  txt:"Стук в подвеске на кочках"},
+  {tool:"wrench",  txt:"Скрипят тормоза при торможении"},
+  {tool:"wrench",  txt:"Стучит глушитель на неровностях"},
+  {tool:"wrench",  txt:"Руль вибрирует на скорости"},
+  {tool:"wrench",  txt:"Болтается колесо, нужен крепёж"},
+  {tool:"wrench",  txt:"Замена тормозных колодок"},
+  {tool:"screw",   txt:"Не работает левый поворотник"},
+  {tool:"screw",   txt:"Двигатель троит, залило свечи"},
+  {tool:"screw",   txt:"Не включается магнитола"},
+  {tool:"screw",   txt:"Скрипит дверь, ослабли петли"},
+  {tool:"screw",   txt:"Не закрывается бардачок"},
+  {tool:"hammer",  txt:"Помято крыло после парковки"},
+  {tool:"hammer",  txt:"Вмятина на капоте от града"},
+  {tool:"hammer",  txt:"Заклинило замок багажника"},
+  {tool:"hammer",  txt:"Погнулся номерной знак"},
+  {tool:"oil",     txt:"Хозяин просит поменять масло"},
+  {tool:"oil",     txt:"Лужа под машиной, уходит антифриз"},
+  {tool:"oil",     txt:"Стрелка температуры в красной зоне"},
+  {tool:"oil",     txt:"Не брызгает омывайка на стекло"},
+  {tool:"scanner", txt:"Горит Check Engine, машина не заводится"},
+  {tool:"scanner", txt:"Барахлит датчик ABS"},
+  {tool:"scanner", txt:"Ошибка подушек безопасности"},
+  {tool:"scanner", txt:"ЭБУ выдаёт ошибку, нужна диагностика"},
+  {tool:"pump",    txt:"Спустило переднее колесо"},
+  {tool:"pump",    txt:"Колёса спущены после стоянки"},
+  {tool:"pump",    txt:"Шипит ниппель, травит воздух"},
+  {tool:"pump",    txt:"Нужно подкачать запаску"}
+];
+
+var CLIENTS = ["Игорь","Наталья","Сергей","Алексей","Марина","Дмитрий","Ольга",
+  "Павел","Виктор","Елена","Роман","Анна","Тимур","Светлана","Максим","Гоша",
+  "Валентина","Артём","Кирилл","Люба"];
+
+var COLORS = ["#e2574c","#3d8bfd","#f0b429","#4cc38a","#9b6bf2","#e8eef6","#5fd0d8","#ef7bb0","#7d8794"];
+var PLATE_L = ["А","В","Е","К","М","Н","О","Р","С","Т","У","Х"];
+var PLATE_R = ["АА","ВС","ЕК","КМ","МН","ОР","СТ","УХ","НН","РР"];
+var REGIONS = [77,99,50,78,116,23,161,197];
+
+/* ================= car art ================= */
+var CAR_PATHS =
+  '<ellipse cx="150" cy="131" rx="116" ry="9" fill="#000" opacity=".45"/>' +
+  '<path d="M34 102 L38 84 Q40 76 52 74 L88 70 L106 46 Q110 40 120 40 L198 40 Q208 40 214 48 L232 70 L256 76 Q266 79 266 90 L266 102 Z" fill="currentColor"/>' +
+  '<path d="M114 66 L126 48 Q128 45 134 45 L158 45 L158 66 Z" fill="#2b3a4b" opacity=".95"/>' +
+  '<path d="M166 45 L196 45 Q202 45 206 51 L220 66 L166 66 Z" fill="#2b3a4b" opacity=".95"/>' +
+  '<rect x="254" y="80" width="11" height="7" rx="3" fill="#ffd98a" opacity=".9"/>' +
+  '<rect x="36" y="86" width="8" height="6" rx="2" fill="#ff5a5a" opacity=".8"/>' +
+  '<circle cx="86" cy="103" r="21" fill="#12161c"/>' +
+  '<circle cx="86" cy="103" r="10" fill="#5c6878"/>' +
+  '<circle cx="86" cy="103" r="3.5" fill="#8e9cae"/>' +
+  '<circle cx="220" cy="103" r="21" fill="#12161c"/>' +
+  '<circle cx="220" cy="103" r="10" fill="#5c6878"/>' +
+  '<circle cx="220" cy="103" r="3.5" fill="#8e9cae"/>';
+
+function carSVG(color){
+  return '<svg class="car" viewBox="0 0 300 150" style="color:'+(color||"#e2574c")+'">'+CAR_PATHS+'</svg>';
+}
+function randomPlate(){
+  return pick(PLATE_L)+" "+(rnd(900)+100)+" "+pick(PLATE_R)+" "+pick(REGIONS);
+}
+
+/* ================= economy ================= */
+function carValue(car){
+  var v = car.base * (0.35 + 0.65*car.cond/100) * (1 + 0.15*car.tune);
+  return round1000(v);
+}
+function repairStepPoints(car){ return Math.min(25, 100 - car.cond); }
+function repairStepCost(car){
+  return round1000(repairStepPoints(car) * car.base * 0.0025);
+}
+function tuneCost(car){ return round1000(car.base * 0.10); }
+function shopPrice(base, cond){
+  var p = base * (0.35 + 0.55*cond/100) * (0.85 + Math.random()*0.25);
+  return round1000(p);
+}
+
+/* ================= state ================= */
+var SAVE_KEY = "avtomaster_v3";
+var DB = null;
+
+function defaultDB(){
+  return {
+    money: 120000,
+    level: 1,
+    best: 0,
+    cars: [],
+    shop: [],
+    hearts: 3,
+    maxHearts: 3,
+    fixed: 0,
+    streak: 0,
+    shiftEarned: 0,
+    sound: true
+  };
+}
+
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(DB)); }catch(e){}
+}
+function load(){
+  try{
+    var raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      var d = JSON.parse(raw);
+      if(d && typeof d.money === "number"){
+        DB = d;
+        var def = defaultDB();
+        for(var k in def){ if(!(k in DB)) DB[k] = def[k]; }
+      }
+    }
+  }catch(e){}
+  if(!DB) DB = defaultDB();
+  if(!DB.shop || !DB.shop.length) DB.shop = makeShop(4);
+}
+
+/* ================= runtime ================= */
+var R = { order:null, stage:0, locked:false, active:false };
+var T = { raf:null, start:0, limit:20, remaining:0, running:false };
+
+/* ================= sound ================= */
+var audioCtx = null, soundOn = true;
+function beep(freq, dur, type, vol){
+  if(!soundOn) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.06, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.12));
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + (dur || 0.12));
+  }catch(e){}
+}
+function buzz(ms){
+  if(!soundOn) return;
+  if(navigator.vibrate){ try{ navigator.vibrate(ms); }catch(e){} }
+}
+
+/* ================= toast ================= */
+var toastTimer = null;
+function toast(msg){
+  var old = document.querySelector(".toast");
+  if(old) old.remove();
+  var d = document.createElement("div");
+  d.className = "toast";
+  d.textContent = msg;
+  $("app").appendChild(d);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ d.remove(); }, 1800);
+}
+
+/* ================= rendering: header ================= */
+function renderHeader(){
+  $("wallet").textContent = fmtN(DB.money);
+  $("wallet2").textContent = fmt(DB.money);
+  $("wallet3").textContent = fmt(DB.money);
+  $("level").textContent = DB.level;
+  var out = "";
+  for(var i=0;i<DB.maxHearts;i++){
+    out += i < DB.hearts ? "❤️" : "<span class='off'>❤️</span>";
+  }
+  $("hearts").innerHTML = out;
+}
+function bump(el){
+  el.classList.add("bump");
+  setTimeout(function(){ el.classList.remove("bump"); }, 160);
+}
+function setMoney(v){
+  DB.money = Math.max(0, Math.round(v));
+  renderHeader();
+  save();
+}
+
+/* ================= shop ================= */
+function makeShopCar(){
+  var m = pick(MODELS);
+  var cond = 20 + rnd(66);
+  return {
+    id: uid(),
+    model: m.n,
+    base: m.base,
+    cond: cond,
+    tune: 0,
+    price: shopPrice(m.base, cond),
+    color: pick(COLORS)
+  };
+}
+function makeShop(n){
+  var a = [];
+  for(var i=0;i<n;i++) a.push(makeShopCar());
+  return a;
+}
+
+/* ================= garage tab ================= */
+function renderGarage(){
+  var box = $("myCars");
+  if(!DB.cars.length){
+    box.innerHTML = '<div class="empty"><span class="big">🚗</span>Гараж пуст.<br>Купи машину в автосалоне и приведи её в порядок.</div>';
+    return;
+  }
+  var html = '<div class="section-title">Мои машины · '+DB.cars.length+'</div>';
+  for(var i=0;i<DB.cars.length;i++){
+    var c = DB.cars[i];
+    var canRepair = c.cond < 100;
+    var canTune = c.tune < 3;
+    html +=
+      '<div class="carCard">'+
+        '<div class="carRow">'+
+          '<div class="thumb">'+carSVG(c.color)+'</div>'+
+          '<div class="cinfo">'+
+            '<div class="cname">'+c.model+'</div>'+
+            '<div class="cmeta">Состояние '+c.cond+'% · Тюнинг '+c.tune+'/3</div>'+
+            '<div class="bar"><i style="width:'+c.cond+'%"></i></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="cvalue"><span>Оценка на рынке</span><b>'+fmt(carValue(c))+'</b></div>'+
+        '<div class="cactions">'+
+          '<button data-act="repair" data-id="'+c.id+'"'+(canRepair?"":" disabled")+'>🔧 Починить · '+fmt(repairStepCost(c))+'</button>'+
+          '<button data-act="tune" data-id="'+c.id+'"'+(canTune?"":" disabled")+'>✨ Тюнинг · '+fmt(tuneCost(c))+'</button>'+
+          '<button class="sell" data-act="sell" data-id="'+c.id+'">💸 Продать за '+fmt(carValue(c))+'</button>'+
+        '</div>'+
+      '</div>';
+  }
+  box.innerHTML = html;
+}
+
+function renderShop(){
+  var box = $("shopList");
+  if(!DB.shop.length){ box.innerHTML = '<div class="empty">Ассортимент пуст.</div>'; return; }
+  var html = '<div class="section-title">Автосалон · авто с пробегом</div>';
+  for(var i=0;i<DB.shop.length;i++){
+    var c = DB.shop[i];
+    var afford = DB.money >= c.price;
+    html +=
+      '<div class="carCard">'+
+        '<div class="carRow">'+
+          '<div class="thumb">'+carSVG(c.color)+'</div>'+
+          '<div class="cinfo">'+
+            '<div class="cname">'+c.model+'</div>'+
+            '<div class="cmeta">Состояние '+c.cond+'% · пробег честный*</div>'+
+            '<div class="bar"><i style="width:'+c.cond+'%"></i></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="cvalue"><span>Цена продавца</span><b>'+fmt(c.price)+'</b></div>'+
+        '<div class="cactions">'+
+          '<button class="buy" data-act="buy" data-id="'+c.id+'"'+(afford?"":" disabled")+'>'+
+            (afford ? "Купить за "+fmt(c.price) : "Не хватает "+fmt(c.price-DB.money))+
+          '</button>'+
+        '</div>'+
+      '</div>';
+  }
+  box.innerHTML = html;
+}
+
+/* ================= shift: orders ================= */
+function orderTime(){
+  var base = 24 - (DB.level-1)*0.7;
+  return Math.max(13, base);
+}
+function makeOrder(){
+  var fault = pick(FAULTS);
+  var model = pick(MODELS);
+  var steps = [];
+  // sometimes the client asks for diagnostics first
+  if(DB.level >= 2 && fault.tool !== "scanner" && Math.random() < 0.35){
+    steps.push({tool:"scanner", txt:"Сначала найди причину — подключи сканер"});
+  }
+  steps.push({tool:fault.tool, txt:fault.txt});
+  return {
+    client: pick(CLIENTS),
+    model: model.n,
+    color: pick(COLORS),
+    plate: randomPlate(),
+    steps: steps
+  };
+}
+
+function showIdle(title, text, btnLabel){
+  $("bayContent").classList.add("hidden");
+  $("idlePanel").classList.remove("hidden");
+  $("idleTitle").textContent = title;
+  $("idleText").textContent = text;
+  $("mainBtn").textContent = btnLabel;
+  $("tools").classList.add("hidden");
+  $("timerFill").style.width = "100%";
+  $("timerFill").className = "";
+}
+
+function acceptOrder(){
+  if(DB.hearts <= 0){ endShift(); return; }
+  R.order = makeOrder();
+  R.stage = 0;
+  R.locked = false;
+  R.active = true;
+
+  $("idlePanel").classList.add("hidden");
+  $("bayContent").classList.remove("hidden");
+  $("tools").classList.remove("hidden");
+
+  $("carHost").innerHTML = carSVG(R.order.color);
+  $("plate").textContent = R.order.plate;
+
+  var cw = $("carwrap");
+  cw.classList.remove("gone");
+  cw.classList.remove("enter");
+  void cw.offsetWidth;
+  cw.classList.add("enter");
+
+  // ворота поднимаются, машина заезжает, ворота опускаются
+  var door = $("door");
+  door.classList.remove("closed");
+  setTimeout(function(){ door.classList.add("closed"); }, 780);
+
+  renderStage();
+  startTimer(orderTime());
+}
+
+function renderStage(){
+  var o = R.order;
+  var st = o.steps[R.stage];
+  var meta = '<b>'+o.client+'</b> · '+o.model;
+  if(o.steps.length > 1){
+    meta += ' <span class="stage">этап '+(R.stage+1)+'/'+o.steps.length+'</span>';
+  }
+  $("client").innerHTML = meta;
+  $("bubble").innerHTML = '<span class="q">«</span>'+st.txt+'<span class="q">»</span>';
+  var b = $("bubble");
+  b.style.animation = "none";
+  void b.offsetWidth;
+  b.style.animation = "";
+  clearToolStates();
+}
+
+function clearToolStates(){
+  var btns = $("tools").querySelectorAll(".tool");
+  for(var i=0;i<btns.length;i++){
+    btns[i].classList.remove("right","wrong","hint");
+    btns[i].disabled = false;
+  }
+}
+
+function buildTools(){
+  var box = $("tools");
+  box.innerHTML = "";
+  for(var i=0;i<TOOLS.length;i++){
+    (function(t){
+      var b = document.createElement("button");
+      b.className = "tool";
+      b.setAttribute("data-tool", t.id);
+      b.innerHTML = '<span class="e">'+t.e+'</span><span>'+t.name+'</span>';
+      b.addEventListener("click", function(){ pickTool(t.id, b); });
+      box.appendChild(b);
+    })(TOOLS[i]);
+  }
+}
+
+function pickTool(id, btn){
+  if(!R.active || R.locked || !R.order) return;
+  R.locked = true;
+  pauseTimer();
+
+  var st = R.order.steps[R.stage];
+  var correct = (id === st.tool);
+
+  if(correct){
+    btn.classList.add("right");
+    beep(660,0.09,"triangle",0.07);
+    buzz(15);
+    if(R.stage < R.order.steps.length - 1){
+      // next stage of the same order
+      setTimeout(function(){
+        R.stage++;
+        R.locked = false;
+        renderStage();
+        startTimer(orderTime());
+      }, 500);
+    } else {
+      finishOrder();
+    }
+  } else {
+    failOrder(btn, st.tool);
+  }
+}
+
+function finishOrder(){
+  var left = Math.max(0, T.remaining);
+  var reward = Math.round((2500 + left*500 + DB.streak*500) / 10) * 10;
+  DB.streak++;
+  DB.fixed++;
+  DB.shiftEarned += reward;
+  setMoney(DB.money + reward);
+  if(DB.money > DB.best) DB.best = DB.money;
+
+  sparks();
+  floatText("+"+fmtN(reward)+" ₽", "#3ddc84");
+  bump($("walletChip"));
+  beep(880,0.1,"triangle",0.06);
+  setTimeout(function(){ beep(1180,0.12,"triangle",0.05); }, 90);
+  buzz(20);
+
+  var leveled = (DB.fixed % 5 === 0);
+  if(leveled){
+    DB.level++;
+    if(DB.hearts < DB.maxHearts){ DB.hearts++; }
+    renderHeader();
+    setTimeout(function(){
+      toast("Уровень "+DB.level+"! Заказы сложнее, оплата выше");
+      beep(520,0.1,"sine",0.06);
+    }, 700);
+  }
+
+  R.active = false;
+  R.locked = true;
+  save();
+
+  // car drives out
+  var cw = $("carwrap");
+  cw.classList.remove("enter");
+  cw.classList.add("gone");
+  $("door").classList.remove("closed");
+  setTimeout(function(){ $("door").classList.add("closed"); }, 620);
+
+  setTimeout(function(){
+    R.order = null;
+    showIdle("Заказ выполнен", "Клиент доволен и уехал. Следующая машина уже во дворе.", "Следующий заказ");
+    $("timerFill").style.width = "100%";
+    $("timerFill").className = "";
+    save();
+  }, 700);
+}
+
+function failOrder(btn, rightTool){
+  DB.streak = 0;
+  DB.hearts--;
+  renderHeader();
+  btn.classList.add("wrong");
+  var cw = $("carwrap");
+  cw.classList.add("shake");
+  setTimeout(function(){ cw.classList.remove("shake"); }, 400);
+  floatText("−1 ❤️", "#ff4d5e");
+  beep(180,0.22,"sawtooth",0.07);
+  buzz(120);
+
+  var rb = $("tools").querySelector('[data-tool="'+rightTool+'"]');
+  if(rb) rb.classList.add("hint");
+
+  R.active = false;
+  R.locked = true;
+  save();
+
+  var dead = DB.hearts <= 0;
+  setTimeout(function(){
+    cw.classList.remove("enter");
+    cw.classList.add("gone");
+    $("door").classList.remove("closed");
+    setTimeout(function(){ $("door").classList.add("closed"); }, 620);
+    setTimeout(function(){
+      R.order = null;
+      if(dead){ endShift(); }
+      else { showIdle("Клиент уехал расстроенным", "Машину пришлось отпустить. Не беда — приедет следующая.", "Принять заказ"); }
+    }, 500);
+  }, dead ? 800 : 1200);
+}
+
+/* ================= timer ================= */
+function startTimer(limit){
+  cancelAnimationFrame(T.raf);
+  T.limit = limit;
+  T.remaining = limit;
+  T.start = performance.now();
+  T.running = true;
+  T.raf = requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!T.running) return;
+  var elapsed = (now - T.start)/1000;
+  var left = T.limit - elapsed;
+  if(left <= 0){
+    T.running = false;
+    T.remaining = 0;
+    $("timerFill").style.width = "0%";
+    timeUp();
+    return;
+  }
+  T.remaining = left;
+  var p = left / T.limit;
+  $("timerFill").style.width = (p*100).toFixed(1)+"%";
+  $("timerFill").className = p > .5 ? "" : (p > .25 ? "warn" : "danger");
+  T.raf = requestAnimationFrame(tick);
+}
+function pauseTimer(){
+  if(!T.running) return;
+  T.remaining = Math.max(0, T.limit - (performance.now() - T.start)/1000);
+  T.running = false;
+  cancelAnimationFrame(T.raf);
+}
+function resumeTimer(){
+  if(T.running || !R.active || T.remaining <= 0) return;
+  T.start = performance.now() - (T.limit - T.remaining)*1000;
+  T.running = true;
+  T.raf = requestAnimationFrame(tick);
+}
+function timeUp(){
+  if(!R.active) return;
+  R.active = false;
+  R.locked = true;
+  DB.streak = 0;
+  DB.hearts--;
+  renderHeader();
+  save();
+
+  var cw = $("carwrap");
+  cw.classList.add("shake");
+  setTimeout(function(){ cw.classList.remove("shake"); }, 400);
+  floatText("Время вышло!", "#ff4d5e");
+  beep(150,0.3,"sawtooth",0.07);
+  buzz(150);
+
+  var st = R.order.steps[R.stage];
+  var rb = $("tools").querySelector('[data-tool="'+st.tool+'"]');
+  if(rb) rb.classList.add("hint");
+
+  var dead = DB.hearts <= 0;
+  setTimeout(function(){
+    cw.classList.remove("enter");
+    cw.classList.add("gone");
+    $("door").classList.remove("closed");
+    setTimeout(function(){ $("door").classList.add("closed"); }, 620);
+    setTimeout(function(){
+      R.order = null;
+      if(dead){ endShift(); }
+      else { showIdle("Время вышло", "Клиент не дождался и уехал. В следующий раз быстрее.", "Принять заказ"); }
+    }, 500);
+  }, dead ? 900 : 1300);
+}
+
+/* ================= shift lifecycle ================= */
+function startShift(){
+  DB.hearts = DB.maxHearts;
+  DB.fixed = 0;
+  DB.streak = 0;
+  DB.shiftEarned = 0;
+  R.order = null; R.stage = 0; R.active = false; R.locked = false;
+  $("endScreen").classList.add("hidden");
+  renderHeader();
+  showIdle("Смена не начата", "Машины ждут во дворе. Прими первый заказ, когда будешь готов.", "Принять заказ");
+  switchTab("shift");
+  save();
+}
+function endShift(){
+  pauseTimer();
+  R.active = false;
+  $("endEarned").textContent = fmtN(DB.shiftEarned);
+  $("endFixed").textContent = DB.fixed;
+  $("endLevel").textContent = DB.level;
+  $("endEmoji").textContent = DB.shiftEarned >= 40000 ? "🏆" : (DB.shiftEarned >= 15000 ? "🥈" : "🧰");
+  var t;
+  if(DB.shiftEarned >= 60000) t = "Легендарная смена. Клиенты записываются за месяц вперёд.";
+  else if(DB.shiftEarned >= 30000) t = "Отличная смена! Мастерская на хорошем счету.";
+  else if(DB.shiftEarned >= 10000) t = "Неплохо. Пара клиентов уехала недовольной.";
+  else if(DB.fixed > 0) t = "Начало положено. Ещё немного практики.";
+  else t = "Пока без заказов. Ничего, руки привыкнут к ключу.";
+  $("endText").textContent = t;
+  $("endScreen").classList.remove("hidden");
+  save();
+}
+
+/* ================= feedback fx ================= */
+function floatText(txt, color){
+  var d = document.createElement("div");
+  d.className = "float";
+  d.textContent = txt;
+  d.style.color = color;
+  $("garage").appendChild(d);
+  setTimeout(function(){ d.remove(); }, 980);
+}
+function sparks(){
+  var r = $("carwrap").getBoundingClientRect();
+  var g = $("garage").getBoundingClientRect();
+  var cx = r.left - g.left + r.width/2;
+  var cy = r.top - g.top + r.height/2;
+  for(var i=0;i<10;i++){
+    var s = document.createElement("div");
+    s.className = "spark";
+    var a = Math.random()*Math.PI*2, d = 40 + Math.random()*70;
+    s.style.setProperty("--dx", (Math.cos(a)*d).toFixed(0)+"px");
+    s.style.setProperty("--dy", (Math.sin(a)*d).toFixed(0)+"px");
+    s.style.left = cx+"px";
+    s.style.top = cy+"px";
+    s.style.background = i%2 ? "#3ddc84" : "#ffd166";
+    $("garage").appendChild(s);
+    (function(node){ setTimeout(function(){ node.remove(); }, 600); })(s);
+  }
+}
+
+/* ================= garage actions ================= */
+function findCar(id){
+  for(var i=0;i<DB.cars.length;i++){ if(DB.cars[i].id === id) return DB.cars[i]; }
+  return null;
+}
+function doRepair(id){
+  var c = findCar(id);
+  if(!c || c.cond >= 100) return;
+  var cost = repairStepCost(c);
+  if(DB.money < cost){ toast("Не хватает "+fmt(cost - DB.money)); beep(180,0.15,"sawtooth",0.06); return; }
+  setMoney(DB.money - cost);
+  c.cond = Math.min(100, c.cond + 25);
+  beep(620,0.08,"triangle",0.06);
+  buzz(15);
+  toast(c.model+": состояние "+c.cond+"%");
+  renderGarage();
+}
+function doTune(id){
+  var c = findCar(id);
+  if(!c || c.tune >= 3) return;
+  var cost = tuneCost(c);
+  if(DB.money < cost){ toast("Не хватает "+fmt(cost - DB.money)); beep(180,0.15,"sawtooth",0.06); return; }
+  setMoney(DB.money - cost);
+  c.tune++;
+  beep(760,0.08,"sine",0.06);
+  setTimeout(function(){ beep(1020,0.1,"sine",0.05); }, 80);
+  buzz(15);
+  toast(c.model+": тюнинг "+c.tune+"/3");
+  renderGarage();
+}
+function doSell(id){
+  var c = findCar(id);
+  if(!c) return;
+  var price = carValue(c);
+  var profit = price - (c.bought || c.price || 0);
+  for(var i=0;i<DB.cars.length;i++){
+    if(DB.cars[i].id === id){ DB.cars.splice(i,1); break; }
+  }
+  setMoney(DB.money + price);
+  beep(880,0.1,"triangle",0.06);
+  setTimeout(function(){ beep(1180,0.12,"triangle",0.05); }, 90);
+  buzz(20);
+  toast("Продано: "+c.model+" · "+fmt(price)+(profit >= 0 ? " (в плюсе)" : " (в минус)"));
+  renderGarage();
+}
+function doBuy(id){
+  var idx = -1;
+  for(var i=0;i<DB.shop.length;i++){ if(DB.shop[i].id === id){ idx = i; break; } }
+  if(idx < 0) return;
+  var c = DB.shop[idx];
+  if(DB.money < c.price){ toast("Не хватает "+fmt(c.price - DB.money)); return; }
+  setMoney(DB.money - c.price);
+  DB.shop.splice(idx,1);
+  c.bought = c.price;
+  DB.cars.push(c);
+  beep(520,0.09,"sine",0.06);
+  setTimeout(function(){ beep(700,0.1,"sine",0.05); }, 90);
+  buzz(20);
+  toast(c.model+" уже в гараже");
+  renderGarage();
+  renderShop();
+}
+
+/* ================= tabs ================= */
+function switchTab(name){
+  var tabs = document.querySelectorAll(".tab");
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.add("hidden");
+  $("tab-"+name).classList.remove("hidden");
+  var btns = document.querySelectorAll("nav.tabs button");
+  for(var j=0;j<btns.length;j++){
+    btns[j].classList.toggle("on", btns[j].getAttribute("data-tab") === name);
+  }
+  notifyTab(name);
+  if(name === "shift"){
+    if(R.active) resumeTimer();
+  } else {
+    pauseTimer();
+    if(name === "garage") renderGarage();
+    if(name === "shop") renderShop();
+  }
+}
+
+/* ================= events ================= */
+function bind(){
+  $("mainBtn").addEventListener("click", function(){
+    beep(520,0.07,"sine",0.05);
+    acceptOrder();
+  });
+  $("endShiftBtn").addEventListener("click", function(){
+    pauseTimer();
+    endShift();
+  });
+  $("againBtn").addEventListener("click", function(){
+    startShift();
+  });
+  $("soundBtn").addEventListener("click", function(){
+    soundOn = !soundOn;
+    DB.sound = soundOn;
+    $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    if(soundOn) beep(600,0.08,"sine",0.05);
+    save();
+  });
+  $("refreshShop").addEventListener("click", function(){
+    DB.shop = makeShop(4);
+    renderShop();
+    save();
+    beep(520,0.07,"sine",0.05);
+    toast("Привезли новые машины");
+  });
+
+  var nav = document.querySelectorAll("nav.tabs button");
+  for(var i=0;i<nav.length;i++){
+    (function(b){
+      b.addEventListener("click", function(){ switchTab(b.getAttribute("data-tab")); });
+    })(nav[i]);
+  }
+
+  $("myCars").addEventListener("click", function(ev){
+    var t = ev.target;
+    while(t && t !== this && !t.getAttribute("data-act")) t = t.parentNode;
+    if(!t || t === this) return;
+    var act = t.getAttribute("data-act");
+    var id = t.getAttribute("data-id");
+    if(act === "repair") doRepair(id);
+    else if(act === "tune") doTune(id);
+    else if(act === "sell") doSell(id);
+  });
+  $("shopList").addEventListener("click", function(ev){
+    var t = ev.target;
+    while(t && t !== this && !t.getAttribute("data-act")) t = t.parentNode;
+    if(!t || t === this) return;
+    if(t.getAttribute("data-act") === "buy") doBuy(t.getAttribute("data-id"));
+  });
+
+  // pause the timer when the app goes to background
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden) pauseTimer();
+    else if(R.active) resumeTimer();
+  });
+
+  // desktop testing
+  window.addEventListener("keydown", function(ev){
+    var map = {"1":"wrench","2":"screw","3":"hammer","4":"oil","5":"scanner","6":"pump"};
+    var id = map[ev.key];
+    if(id && R.active){
+      var b = $("tools").querySelector('[data-tool="'+id+'"]');
+      if(b) pickTool(id, b);
+    }
+  });
+}
+
+/* ================= init ================= */
+function init(){
+  load();
+  soundOn = DB.sound !== false;
+  $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+  buildTools();
+  bind();
+  renderHeader();
+  renderGarage();
+  renderShop();
+
+  R.order = null;
+  R.active = false;
+  if(DB.hearts <= 0) DB.hearts = DB.maxHearts;
+  showIdle("Смена не начата", "Машины ждут во дворе. Прими первый заказ, когда будешь готов.", "Принять заказ");
+  switchTab("shift");
+
+  // Кнопка «Назад» в приложении сначала возвращает на смену.
+  window.gameGoShift = function(){ switchTab("shift"); };
+  // Пауза таймера, когда приложение уходит в фон.
+  window.gamePause = function(){ pauseTimer(); };
+  window.gameResume = function(){ if(R.active) resumeTimer(); };
+  notifyReady();
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>

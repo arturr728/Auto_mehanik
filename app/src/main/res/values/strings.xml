@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Автомастерская</string>
+    <string name="splash_loading">Загружаем бокс…</string>
+    <string name="splash_error">Не удалось загрузить игру.\nНажми, чтобы попробовать снова.</string>
+    <string name="exit_hint">Нажми «Назад» ещё раз, чтобы выйти</string>
+</resources>
