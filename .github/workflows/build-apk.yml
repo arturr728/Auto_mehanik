@@ -22,20 +22,28 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Read version from build.gradle
+        id: v
+        run: |
+          VER=$(grep -oP 'versionName\s+"\K[^"]+' app/build.gradle)
+          CODE=$(grep -oP 'versionCode\s+\K[0-9]+' app/build.gradle)
+          echo "version $VER code $CODE"
+          echo "name=$VER" >> "$GITHUB_OUTPUT"
+
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Prepare artifact
-        run: cp app/build/outputs/apk/debug/app-debug.apk AvtoMaster-1.1.apk
+      - name: Name artifact
+        run: cp app/build/outputs/apk/debug/app-debug.apk "AvtoMaster-${{ steps.v.outputs.name }}.apk"
 
       - uses: actions/upload-artifact@v4
         with:
           name: AvtoMaster-apk
-          path: AvtoMaster-1.1.apk
+          path: AvtoMaster-*.apk
           if-no-files-found: error
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1
-          name: AutoMaster 1.1
-          files: AvtoMaster-1.1.apk
+          tag_name: v${{ steps.v.outputs.name }}
+          name: AutoMaster ${{ steps.v.outputs.name }}
+          files: AvtoMaster-*.apk
