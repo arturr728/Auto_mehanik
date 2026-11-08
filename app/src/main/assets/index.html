@@ -319,6 +319,51 @@ nav.tabs button.on .e{filter:none}
   white-space:nowrap;
 }
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---------- осмотр машины ---------- */
+.inspect .card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.inspect .card-head h2{margin:0;font-size:17px;flex:1;text-align:left}
+.inspect .sub{margin:0 0 9px;text-align:left;font-size:11.5px;color:var(--dim);line-height:1.35}
+.inspect .parts{max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;text-align:left}
+.partRow{
+  background:#182029;border:1px solid #263140;border-radius:13px;
+  padding:8px 10px;display:flex;gap:9px;align-items:center;cursor:pointer;
+  transition:border-color .15s,box-shadow .15s,opacity .15s;
+}
+.partRow.open{border-color:var(--acc);box-shadow:0 0 0 1px rgba(255,138,31,.35)}
+.partRow.fixed{opacity:.5}
+.partRow .pe{font-size:18px;line-height:1}
+.partRow .pinfo{flex:1;min-width:0}
+.partRow .pname{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;font-weight:800}
+.partRow .pname span{color:var(--dim);font-weight:700;font-size:11px;font-variant-numeric:tabular-nums}
+.partRow .pfault{font-size:11px;color:var(--dim);line-height:1.25;margin-top:2px}
+.partRow .pfault.ok{color:var(--ok)}
+.palette{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:7px}
+.palette .tool{padding:7px 2px;gap:2px;font-size:9px;border-radius:11px}
+.palette .tool .e{font-size:17px}
+.inspect .hint{margin:7px 0 0;font-size:10.5px;color:var(--dim);text-align:center;line-height:1.3}
+
+/* ---------- зимний ивент ---------- */
+.winter-card{
+  background:linear-gradient(180deg,#16283a,#111a24);
+  border:1px solid #26405a;border-radius:16px;padding:12px;margin-bottom:9px;
+}
+.winter-card .wq{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#7fc4ff}
+.winter-card h3{margin:6px 0 4px;font-size:15.5px;line-height:1.25}
+.winter-card p{margin:0;font-size:11.5px;color:var(--dim);line-height:1.35}
+.wbar{height:8px;border-radius:99px;background:#0f1720;border:1px solid #22303f;overflow:hidden;margin:9px 0 3px}
+.wbar i{display:block;height:100%;background:linear-gradient(90deg,#5fb8ff,#a9e2ff);border-radius:99px;transition:width .3s}
+.wmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:4px}
+.wmeta b{color:var(--txt);font-variant-numeric:tabular-nums}
+.wgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-bottom:10px}
+.wstep{
+  font-size:10px;text-align:center;padding:4px 0;border-radius:7px;
+  background:#141d27;border:1px solid #22303f;color:#4f5d6e;
+  font-variant-numeric:tabular-nums;
+}
+.wstep.done{background:#173a2b;border-color:#2c7a4d;color:#9df0c1}
+.wstep.now{background:#2a1f10;border-color:#7a5320;color:#ffb45c}
+.wstep.prize{background:#1b2b3d;border-color:#3f6285;color:#a9e2ff}
 </style>
 </head>
 <body>
@@ -382,12 +427,21 @@ nav.tabs button.on .e{filter:none}
       <button class="btn ghost sm" id="refreshShop" style="margin-bottom:8px">🔄 Обновить ассортимент</button>
     </section>
 
+    <!-- ============ WINTER EVENT ============ -->
+    <section class="tab hidden" id="tab-winter">
+      <div class="wallet-line">
+        <span>❄️ Зимний ивент</span><b id="winterProgress">0/30</b>
+      </div>
+      <div class="scroll" id="winterBody"></div>
+    </section>
+
   </div>
 
   <nav class="tabs">
     <button data-tab="shift" class="on"><span class="e">🔧</span><span>Смена</span></button>
     <button data-tab="garage"><span class="e">🚗</span><span>Гараж</span></button>
     <button data-tab="shop"><span class="e">🏪</span><span>Салон</span></button>
+    <button data-tab="winter"><span class="e">❄️</span><span>Зима</span></button>
   </nav>
 
   <!-- shift end overlay -->
@@ -402,6 +456,20 @@ nav.tabs button.on .e{filter:none}
       </div>
       <p id="endText">Мастерская закрывается до завтра.</p>
       <button class="btn" id="againBtn">Новая смена</button>
+    </div>
+  </div>
+
+  <!-- осмотр машины в гараже -->
+  <div class="overlay hidden" id="inspectScreen">
+    <div class="card inspect">
+      <div class="card-head">
+        <h2 id="inspTitle">Осмотр</h2>
+        <button class="btn ghost sm" id="inspClose" style="width:auto;padding:8px 13px;font-size:14px">✕</button>
+      </div>
+      <p class="sub" id="inspSub">Состояние</p>
+      <div class="parts" id="inspParts"></div>
+      <div class="palette hidden" id="inspPalette"></div>
+      <p class="hint" id="inspHint">Выбери деталь, затем инструмент.</p>
     </div>
   </div>
 
@@ -498,6 +566,53 @@ var FAULTS = [
   {tool:"pump",    txt:"Нужно подкачать запаску"}
 ];
 
+/* ===== детали машины: смотрим в салон и решаем, чем чинить ===== */
+var PART_DEFS = [
+  {id:"engine", name:"Двигатель", e:"⚙️", faults:[
+    {tool:"oil",     txt:"Масло чёрное, давно не меняли"},
+    {tool:"screw",   txt:"Троит, залило свечи"},
+    {tool:"scanner", txt:"Горит Check Engine"},
+    {tool:"oil",     txt:"Уходит антифриз, лужа под машиной"}
+  ]},
+  {id:"susp", name:"Ходовая", e:"🔩", faults:[
+    {tool:"wrench", txt:"Стук в подвеске на кочках"},
+    {tool:"wrench", txt:"Скрипят тормоза при торможении"},
+    {tool:"pump",   txt:"Спустило переднее колесо"},
+    {tool:"pump",   txt:"Шипит ниппель, травит воздух"}
+  ]},
+  {id:"elec", name:"Электрика", e:"🔌", faults:[
+    {tool:"screw",   txt:"Не работает левый поворотник"},
+    {tool:"scanner", txt:"Барахлит датчик ABS"},
+    {tool:"screw",   txt:"Не включается магнитола"},
+    {tool:"scanner", txt:"Ошибка подушек безопасности"}
+  ]},
+  {id:"body", name:"Кузов и салон", e:"🔨", faults:[
+    {tool:"hammer", txt:"Вмятина на крыле после парковки"},
+    {tool:"hammer", txt:"Заклинило замок багажника"},
+    {tool:"hammer", txt:"Погнулся номерной знак"},
+    {tool:"oil",    txt:"Скрипит дверь, нужна смазка"}
+  ]}
+];
+
+/* ===== зимний ивент: 30 квестов ===== */
+var WINTER_PLAN = [
+  ["order",1], ["repair",2], ["earn",5000], ["buy",1], ["order",3],
+  ["sell",1], ["tune",1], ["repair",4], ["earn",12000], ["shift",1],
+  ["order",5], ["buy",2], ["sell",2], ["tune",3], ["repair",6],
+  ["earn",25000], ["order",8], ["shift",2], ["sell",3], ["buy",3],
+  ["repair",10], ["tune",5], ["earn",40000], ["order",12], ["shift",3],
+  ["sell",5], ["repair",15], ["buy",4], ["tune",8], ["order",20]
+];
+var WINTER_TEXT = {
+  order:"Выполни заказов на смене",
+  earn:"Заработай на заказах",
+  buy:"Купи машин в салоне",
+  repair:"Отремонтируй деталей в гараже",
+  sell:"Продай машин",
+  tune:"Сделай тюнинг",
+  shift:"Закончи смен"
+};
+
 var CLIENTS = ["Игорь","Наталья","Сергей","Алексей","Марина","Дмитрий","Ольга",
   "Павел","Виктор","Елена","Роман","Анна","Тимур","Светлана","Максим","Гоша",
   "Валентина","Артём","Кирилл","Люба"];
@@ -544,6 +659,42 @@ function shopPrice(base, cond){
   return round1000(p);
 }
 
+/* ================= детали машины ================= */
+function partById(id){
+  for(var i=0;i<PART_DEFS.length;i++){ if(PART_DEFS[i].id === id) return PART_DEFS[i]; }
+  return PART_DEFS[0];
+}
+function carParts(car){
+  if(!car.parts || typeof car.parts !== "object"){ car.parts = {}; }
+  for(var i=0;i<PART_DEFS.length;i++){
+    var id = PART_DEFS[i].id;
+    var p = car.parts[id];
+    if(!p || typeof p.cond !== "number"){
+      car.parts[id] = {
+        cond: clamp((car.cond || 0) + rnd(21) - 10, 0, 100),
+        fault: rnd(PART_DEFS[i].faults.length)
+      };
+    } else if(typeof p.fault !== "number" || p.fault < 0 || p.fault >= PART_DEFS[i].faults.length){
+      p.fault = rnd(PART_DEFS[i].faults.length);
+    }
+  }
+  if(car.cond >= 100){
+    for(var k in car.parts){ car.parts[k].cond = 100; }
+  }
+  return car.parts;
+}
+function carCond(car){
+  var parts = carParts(car), sum = 0, n = 0;
+  for(var i=0;i<PART_DEFS.length;i++){
+    var p = parts[PART_DEFS[i].id];
+    if(p){ sum += p.cond; n++; }
+  }
+  return n ? Math.round(sum/n) : car.cond;
+}
+function partRepairCost(car, p){
+  return Math.max(1000, round1000((100 - p.cond) * car.base * 0.0012));
+}
+
 /* ================= state ================= */
 var SAVE_KEY = "avtomaster_v3";
 var DB = null;
@@ -560,7 +711,8 @@ function defaultDB(){
     fixed: 0,
     streak: 0,
     shiftEarned: 0,
-    sound: true
+    sound: true,
+    winter: { i:0, cur:0, ready:false, cleared:false }
   };
 }
 
@@ -580,6 +732,7 @@ function load(){
     }
   }catch(e){}
   if(!DB) DB = defaultDB();
+  if(!DB.winter || typeof DB.winter.i !== "number") DB.winter = { i:0, cur:0, ready:false, cleared:false };
   if(!DB.shop || !DB.shop.length) DB.shop = makeShop(4);
 }
 
@@ -671,7 +824,10 @@ function renderGarage(){
   var html = '<div class="section-title">Мои машины · '+DB.cars.length+'</div>';
   for(var i=0;i<DB.cars.length;i++){
     var c = DB.cars[i];
-    var canRepair = c.cond < 100;
+    var parts = carParts(c);
+    c.cond = carCond(c);
+    var broken = 0;
+    for(var q=0;q<PART_DEFS.length;q++){ if(parts[PART_DEFS[q].id].cond < 100) broken++; }
     var canTune = c.tune < 3;
     html +=
       '<div class="carCard">'+
@@ -679,13 +835,13 @@ function renderGarage(){
           '<div class="thumb">'+carSVG(c.color)+'</div>'+
           '<div class="cinfo">'+
             '<div class="cname">'+c.model+'</div>'+
-            '<div class="cmeta">Состояние '+c.cond+'% · Тюнинг '+c.tune+'/3</div>'+
+            '<div class="cmeta">Состояние '+c.cond+'% · деталей чинить: '+broken+' · Тюнинг '+c.tune+'/3</div>'+
             '<div class="bar"><i style="width:'+c.cond+'%"></i></div>'+
           '</div>'+
         '</div>'+
         '<div class="cvalue"><span>Оценка на рынке</span><b>'+fmt(carValue(c))+'</b></div>'+
         '<div class="cactions">'+
-          '<button data-act="repair" data-id="'+c.id+'"'+(canRepair?"":" disabled")+'>🔧 Починить · '+fmt(repairStepCost(c))+'</button>'+
+          '<button data-act="inspect" data-id="'+c.id+'">🔍 Осмотр'+(broken?" · "+broken:"")+'</button>'+
           '<button data-act="tune" data-id="'+c.id+'"'+(canTune?"":" disabled")+'>✨ Тюнинг · '+fmt(tuneCost(c))+'</button>'+
           '<button class="sell" data-act="sell" data-id="'+c.id+'">💸 Продать за '+fmt(carValue(c))+'</button>'+
         '</div>'+
@@ -858,6 +1014,8 @@ function finishOrder(){
   DB.streak++;
   DB.fixed++;
   DB.shiftEarned += reward;
+  winterAdd("order", 1);
+  winterAdd("earn", reward);
   setMoney(DB.money + reward);
   if(DB.money > DB.best) DB.best = DB.money;
 
@@ -1020,6 +1178,7 @@ function startShift(){
 function endShift(){
   pauseTimer();
   R.active = false;
+  winterAdd("shift", 1);
   $("endEarned").textContent = fmtN(DB.shiftEarned);
   $("endFixed").textContent = DB.fixed;
   $("endLevel").textContent = DB.level;
@@ -1068,17 +1227,213 @@ function findCar(id){
   for(var i=0;i<DB.cars.length;i++){ if(DB.cars[i].id === id) return DB.cars[i]; }
   return null;
 }
-function doRepair(id){
+/* ================= осмотр машины ================= */
+var INSP = { carId:null, partId:null };
+
+function openInspect(id){
   var c = findCar(id);
-  if(!c || c.cond >= 100) return;
-  var cost = repairStepCost(c);
+  if(!c) return;
+  INSP.carId = id;
+  INSP.partId = null;
+  $("inspTitle").textContent = c.model;
+  $("inspPalette").classList.add("hidden");
+  $("inspPalette").innerHTML = "";
+  $("inspectScreen").classList.remove("hidden");
+  renderInspect();
+  beep(420,0.06,"sine",0.04);
+}
+function closeInspect(){
+  $("inspectScreen").classList.add("hidden");
+  INSP.carId = null;
+  INSP.partId = null;
+  renderGarage();
+}
+function renderInspect(){
+  var c = findCar(INSP.carId);
+  if(!c) return;
+  var parts = carParts(c);
+  c.cond = carCond(c);
+
+  var html = "", fixed = 0;
+  for(var i=0;i<PART_DEFS.length;i++){
+    var d = PART_DEFS[i], p = parts[d.id];
+    var isOk = p.cond >= 100;
+    if(isOk) fixed++;
+    var fault = d.faults[p.fault] || d.faults[0];
+    html +=
+      '<div class="partRow'+(isOk?" fixed":"")+(INSP.partId===d.id?" open":"")+'" data-part="'+d.id+'">'+
+        '<span class="pe">'+d.e+'</span>'+
+        '<div class="pinfo">'+
+          '<div class="pname">'+d.name+'<span>'+p.cond+'%</span></div>'+
+          '<div class="pfault'+(isOk?" ok":"")+'">'+(isOk ? "В порядке" : fault.txt)+'</div>'+
+        '</div>'+
+      '</div>';
+  }
+  $("inspParts").innerHTML = html;
+  $("inspSub").textContent = "Состояние "+c.cond+"% · в порядке "+fixed+"/"+PART_DEFS.length;
+
+  var pal = $("inspPalette");
+  if(INSP.partId){
+    var pd = partById(INSP.partId), pp = parts[INSP.partId];
+    if(pp.cond >= 100){
+      INSP.partId = null;
+      pal.classList.add("hidden");
+      $("inspHint").textContent = "Эта деталь уже в порядке. Выбери другую.";
+      return;
+    }
+    var cost = partRepairCost(c, pp);
+    var ph = "";
+    for(var t=0;t<TOOLS.length;t++){
+      ph += '<button class="tool" data-insp-tool="'+TOOLS[t].id+'"><span class="e">'+TOOLS[t].e+'</span><span>'+TOOLS[t].name+'</span></button>';
+    }
+    pal.innerHTML = ph;
+    pal.classList.remove("hidden");
+    $("inspHint").textContent = "Чем чиним «"+pd.name+"» · "+(DB.money >= cost ? fmt(cost) : "не хватает "+fmt(cost - DB.money));
+  } else {
+    pal.classList.add("hidden");
+    pal.innerHTML = "";
+    $("inspHint").textContent = fixed === PART_DEFS.length
+      ? "Машина в полном порядке."
+      : "Выбери деталь, посмотри на неисправность и подбери инструмент.";
+  }
+}
+function inspectRepair(toolId){
+  var c = findCar(INSP.carId);
+  if(!c || !INSP.partId) return;
+  var parts = carParts(c), p = parts[INSP.partId];
+  if(!p || p.cond >= 100) return;
+  var d = partById(INSP.partId);
+  var fault = d.faults[p.fault] || d.faults[0];
+  var cost = partRepairCost(c, p);
+
+  if(toolId !== fault.tool){
+    var fee = Math.max(500, round1000(cost * 0.2));
+    if(DB.money < fee){ toast("Не хватает "+fmt(fee - DB.money)); beep(180,0.15,"sawtooth",0.06); return; }
+    setMoney(DB.money - fee);
+    beep(170,0.22,"sawtooth",0.07);
+    buzz(90);
+    toast("Не тот инструмент · −"+fmtN(fee)+" ₽");
+    renderInspect();
+    return;
+  }
   if(DB.money < cost){ toast("Не хватает "+fmt(cost - DB.money)); beep(180,0.15,"sawtooth",0.06); return; }
+
   setMoney(DB.money - cost);
-  c.cond = Math.min(100, c.cond + 25);
+  p.cond = Math.min(100, p.cond + 25);
+  p.fault = rnd(d.faults.length);
+  c.cond = carCond(c);
   beep(620,0.08,"triangle",0.06);
   buzz(15);
-  toast(c.model+": состояние "+c.cond+"%");
+  toast(d.name+": "+p.cond+"%");
+  winterAdd("repair", 1);
+  renderInspect();
+  save();
+}
+
+/* ================= зимний ивент ================= */
+function winterReward(i){ return 4000 + i * 1500; }
+function winterValue(kind, v){
+  return kind === "earn" ? fmtN(v) + " ₽" : v;
+}
+function winterQuest(){
+  var W = DB.winter;
+  if(!W || W.cleared || W.i >= WINTER_PLAN.length) return null;
+  return WINTER_PLAN[W.i];
+}
+function winterAdd(kind, amount){
+  var W = DB.winter, q = winterQuest();
+  if(!W || !q || W.ready || q[0] !== kind) return;
+  W.cur += amount;
+  if(W.cur >= q[1]){
+    W.cur = q[1];
+    W.ready = true;
+    toast("Квест "+(W.i+1)+" из 30 выполнен!");
+    beep(760,0.1,"sine",0.05);
+  }
+  save();
+  renderWinter();
+}
+function giveWinterCar(){
+  var c = { id:uid(), model:"Subaru Impreza WRX · Snow", base:900000, cond:100, tune:3, color:"#9fd8ff", bought:0 };
+  var parts = carParts(c);
+  for(var k in parts){ parts[k].cond = 100; }
+  c.cond = 100;
+  DB.cars.push(c);
+  save();
   renderGarage();
+}
+function winterClaim(){
+  var W = DB.winter;
+  if(!W || !W.ready) return;
+  var reward = winterReward(W.i);
+  setMoney(DB.money + reward);
+  floatText("+"+fmtN(reward)+" ₽", "#9fd8ff");
+  beep(880,0.1,"triangle",0.06);
+  buzz(20);
+  if(W.i >= WINTER_PLAN.length - 1){
+    W.cleared = true;
+    W.ready = false;
+    W.cur = 0;
+    giveWinterCar();
+    toast("Ивент пройден! Машина в гараже");
+  } else {
+    W.i++;
+    W.cur = 0;
+    W.ready = false;
+    toast("Квест "+(W.i+1)+" из 30");
+  }
+  save();
+  renderWinter();
+}
+function renderWinter(){
+  var box = $("winterBody");
+  var W = DB.winter;
+  if(!W) return;
+  var total = WINTER_PLAN.length;
+  $("winterProgress").textContent = (W.cleared ? total : W.i) + "/" + total;
+
+  var html = "";
+  if(W.cleared){
+    html +=
+      '<div class="winter-card">'+
+        '<div class="wq">Ивент пройден</div>'+
+        '<h3>❄️ Все 30 квестов выполнены</h3>'+
+        '<p>Награда — Subaru Impreza WRX · Snow с полным тюнингом. Ищи её в гараже.</p>'+
+      '</div>';
+  } else {
+    var q = WINTER_PLAN[W.i];
+    var target = q[1], cur = Math.min(W.cur, target);
+    var pct = Math.round(cur / target * 100);
+    html +=
+      '<div class="winter-card">'+
+        '<div class="wq">Квест '+(W.i+1)+' из '+total+'</div>'+
+        '<h3>'+WINTER_TEXT[q[0]]+'</h3>'+
+        '<p>Зимняя подработка: клиенты платят больше, но и работы больше. '+
+          'Выполни задание и забери награду.</p>'+
+        '<div class="wbar"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="wmeta"><span>'+winterValue(q[0], cur)+' / '+winterValue(q[0], target)+'</span>'+
+          '<b>+ '+fmt(winterReward(W.i))+'</b></div>'+
+        (W.ready ? '<button class="btn" data-winter="claim" style="margin-top:10px">🎁 Забрать награду</button>' : '')+
+      '</div>';
+  }
+
+  html += '<div class="section-title">Карта ивента · 30 квестов</div><div class="wgrid">';
+  for(var i=0;i<total;i++){
+    var cls = "wstep";
+    if(W.cleared || i < W.i) cls += " done";
+    else if(i === W.i) cls += " now";
+    if(i === total-1) cls += " prize";
+    html += '<div class="'+cls+'">'+(i+1)+'</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="winter-card">'+
+    '<div class="wq">Награда за 30 квестов</div>'+
+    '<h3>🚗 Subaru Impreza WRX · Snow</h3>'+
+    '<p>Состояние 100%, тюнинг 3/3, ледяной окрас. Достаётся бесплатно и сразу в гараж.</p>'+
+  '</div>';
+
+  box.innerHTML = html;
 }
 function doTune(id){
   var c = findCar(id);
@@ -1091,6 +1446,7 @@ function doTune(id){
   setTimeout(function(){ beep(1020,0.1,"sine",0.05); }, 80);
   buzz(15);
   toast(c.model+": тюнинг "+c.tune+"/3");
+  winterAdd("tune", 1);
   renderGarage();
 }
 function doSell(id){
@@ -1106,6 +1462,7 @@ function doSell(id){
   setTimeout(function(){ beep(1180,0.12,"triangle",0.05); }, 90);
   buzz(20);
   toast("Продано: "+c.model+" · "+fmt(price)+(profit >= 0 ? " (в плюсе)" : " (в минус)"));
+  winterAdd("sell", 1);
   renderGarage();
 }
 function doBuy(id){
@@ -1122,6 +1479,7 @@ function doBuy(id){
   setTimeout(function(){ beep(700,0.1,"sine",0.05); }, 90);
   buzz(20);
   toast(c.model+" уже в гараже");
+  winterAdd("buy", 1);
   renderGarage();
   renderShop();
 }
@@ -1142,6 +1500,7 @@ function switchTab(name){
     pauseTimer();
     if(name === "garage") renderGarage();
     if(name === "shop") renderShop();
+    if(name === "winter") renderWinter();
   }
 }
 
@@ -1173,6 +1532,33 @@ function bind(){
     toast("Привезли новые машины");
   });
 
+  $("inspClose").addEventListener("click", closeInspect);
+  $("inspParts").addEventListener("click", function(ev){
+    var t = ev.target;
+    while(t && t !== this && !t.getAttribute("data-part")) t = t.parentNode;
+    if(!t || t === this) return;
+    var pid = t.getAttribute("data-part");
+    var c = findCar(INSP.carId);
+    if(!c) return;
+    var p = carParts(c)[pid];
+    if(!p || p.cond >= 100){ INSP.partId = null; renderInspect(); return; }
+    INSP.partId = (INSP.partId === pid) ? null : pid;
+    renderInspect();
+    beep(520,0.05,"sine",0.04);
+  });
+  $("inspPalette").addEventListener("click", function(ev){
+    var t = ev.target;
+    while(t && t !== this && !t.getAttribute("data-insp-tool")) t = t.parentNode;
+    if(!t || t === this) return;
+    inspectRepair(t.getAttribute("data-insp-tool"));
+  });
+  $("winterBody").addEventListener("click", function(ev){
+    var t = ev.target;
+    while(t && t !== this && !t.getAttribute("data-winter")) t = t.parentNode;
+    if(!t || t === this) return;
+    if(t.getAttribute("data-winter") === "claim") winterClaim();
+  });
+
   var nav = document.querySelectorAll("nav.tabs button");
   for(var i=0;i<nav.length;i++){
     (function(b){
@@ -1186,7 +1572,7 @@ function bind(){
     if(!t || t === this) return;
     var act = t.getAttribute("data-act");
     var id = t.getAttribute("data-id");
-    if(act === "repair") doRepair(id);
+    if(act === "inspect") openInspect(id);
     else if(act === "tune") doTune(id);
     else if(act === "sell") doSell(id);
   });
@@ -1224,6 +1610,7 @@ function init(){
   renderHeader();
   renderGarage();
   renderShop();
+  renderWinter();
 
   R.order = null;
   R.active = false;
@@ -1232,7 +1619,10 @@ function init(){
   switchTab("shift");
 
   // Кнопка «Назад» в приложении сначала возвращает на смену.
-  window.gameGoShift = function(){ switchTab("shift"); };
+  window.gameGoShift = function(){
+    if(!$("inspectScreen").classList.contains("hidden")){ closeInspect(); return; }
+    switchTab("shift");
+  };
   // Пауза таймера, когда приложение уходит в фон.
   window.gamePause = function(){ pauseTimer(); };
   window.gameResume = function(){ if(R.active) resumeTimer(); };
