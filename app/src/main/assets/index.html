@@ -605,6 +605,13 @@ var TOOLS = [
   {id:"pump",    e:"💨", name:"Компрессор"}
 ];
 
+function toolLabel(id){
+  for(var i=0;i<TOOLS.length;i++){
+    if(TOOLS[i].id === id) return TOOLS[i].e + " " + TOOLS[i].name;
+  }
+  return id || "";
+}
+
 var FAULTS = [
   {tool:"wrench",  txt:"Стук в подвеске на кочках"},
   {tool:"wrench",  txt:"Скрипят тормоза при торможении"},
@@ -1140,6 +1147,7 @@ function failOrder(btn, rightTool){
 
   var rb = $("tools").querySelector('[data-tool="'+rightTool+'"]');
   if(rb) rb.classList.add("hint");
+  else if(rightTool) toast("Нужен был: " + toolLabel(rightTool));
 
   R.active = false;
   R.locked = true;
@@ -1593,6 +1601,7 @@ function garageUseTool(toolId){
       setTimeout(function(){ sb.classList.remove("shake"); }, 420);
       toast("Не тот инструмент · −"+fmtN(fee)+" ₽");
       renderInspect();
+      $("inspHint").textContent = "Нужен был: " + toolLabel(fault.tool);
       return;
     }
     setMoney(DB.money - cost);
