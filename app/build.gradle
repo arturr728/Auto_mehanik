@@ -10,19 +10,30 @@ android {
         applicationId "ru.narezany.avtomaster"
         minSdk 21
         targetSdk 34
-        versionCode 5
-        versionName "0.3.1-alpha"
+        versionCode 6
+        versionName "0.3.2-alpha"
+    }
+
+    // Постоянный ключ подписи: без него каждая сборка получает новую подпись,
+    // и Android отказывается ставить обновление поверх установленной игры.
+    signingConfigs {
+        release {
+            storeFile file("avtomaster.jks")
+            storePassword "avtomaster2026"
+            keyAlias "avtomaster"
+            keyPassword "avtomaster2026"
+        }
     }
 
     buildTypes {
         debug {
             minifyEnabled false
+            signingConfig signingConfigs.release
         }
         release {
             minifyEnabled false
             shrinkResources false
-            // чтобы release-сборка тоже ставилась без отдельного ключа
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 

@@ -22,6 +22,28 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      # Постоянный ключ подписи. Создаётся один раз и хранится в репозитории,
+      # чтобы все следующие APK имели одинаковую подпись и ставились
+      # обновлением поверх старой версии, без удаления игры.
+      - name: Signing key
+        run: |
+          if [ ! -f app/avtomaster.jks ]; then
+            echo "keystore not found, creating permanent one"
+            keytool -genkeypair -v \
+              -keystore app/avtomaster.jks \
+              -alias avtomaster \
+              -keyalg RSA -keysize 2048 -validity 10950 \
+              -storepass avtomaster2026 -keypass avtomaster2026 \
+              -dname "CN=AvtoMaster, O=Narezany, C=RU"
+            git config user.name "avtomaster-bot"
+            git config user.email "avtomaster-bot@users.noreply.github.com"
+            git add app/avtomaster.jks
+            git commit -m "add permanent signing keystore"
+            git push
+          else
+            echo "keystore already in repo"
+          fi
+
       - name: Read version from build.gradle
         id: v
         run: |
@@ -30,11 +52,11 @@ jobs:
           echo "version $VER code $CODE"
           echo "name=$VER" >> "$GITHUB_OUTPUT"
 
-      - name: Build debug APK
-        run: gradle assembleDebug --no-daemon --stacktrace
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Name artifact
-        run: cp app/build/outputs/apk/debug/app-debug.apk "AvtoMaster-${{ steps.v.outputs.name }}.apk"
+        run: cp app/build/outputs/apk/release/app-release.apk "AvtoMaster-${{ steps.v.outputs.name }}.apk"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -47,3 +69,6 @@ jobs:
           tag_name: v${{ steps.v.outputs.name }}
           name: AutoMaster ${{ steps.v.outputs.name }}
           files: AvtoMaster-*.apk
+          body: |
+            Подпись APK теперь постоянная: следующие обновления
+            ставятся поверх старой версии, без удаления игры.
